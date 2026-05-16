@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interview Question Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    /* ── Design tokens ──────────────────────────────────────── */
+    :root {
+      --bg:       #0d0d0d;
+      --surface:  #161616;
+      --border:   #2a2a2a;
+      --accent:   #c8f55a;   /* electric lime */
+      --accent-2: #ff6b35;   /* orange pop   */
+      --text:     #e8e8e8;
+      --muted:    #5a5a5a;
+      --radius:   4px;
+      --mono: "DM Mono", monospace;
+      --serif: "DM Serif Display", Georgia, serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      min-height: 100vh;
+      display: grid;
+      place-items: start center;
+      padding: 3rem 1.25rem 6rem;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────── */
+    .container {
+      width: 100%;
+      max-width: 680px;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    header {
+      margin-bottom: 3rem;
+    }
+
+    .label {
+      font-size: 0.65rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(2rem, 6vw, 3.25rem);
+      line-height: 1.1;
+      font-weight: 400;
+      color: var(--text);
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .sub {
+      margin-top: 0.75rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ── Form ───────────────────────────────────────────────── */
+    .form-row {
+      display: flex;
+      gap: 0;
+      margin-top: 2.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .form-row:focus-within {
+      border-color: var(--accent);
+    }
+
+    #job-title {
+      flex: 1;
+      background: var(--surface);
+      border: none;
+      outline: none;
+      padding: 0.9rem 1.1rem;
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      color: var(--text);
+      caret-color: var(--accent);
+    }
+
+    #job-title::placeholder { color: var(--muted); }
+
+    #submit-btn {
+      background: var(--accent);
+      border: none;
+      padding: 0.9rem 1.4rem;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #0d0d0d;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    #submit-btn:hover:not(:disabled) { background: #d8ff6a; }
+    #submit-btn:active:not(:disabled) { transform: scale(0.97); }
+    #submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Status / Error ─────────────────────────────────────── */
+    .status {
+      margin-top: 1.5rem;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      min-height: 1.1rem;
+    }
+
+    .status.error { color: var(--accent-2); }
+
+    /* ── Loading animation ──────────────────────────────────── */
+    .loader {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .loader.visible { display: flex; }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes pulse {
+      0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+      40%            { opacity: 1;   transform: scale(1);   }
+    }
+
+    .loader-text {
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    /* ── Results ────────────────────────────────────────────── */
+    #results {
+      margin-top: 2.5rem;
+      display: none;
+    }
+
+    #results.visible { display: block; }
+
+    .results-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .results-label {
+      font-size: 0.62rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .role-tag {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 0.95rem;
+      color: var(--accent);
+    }
+
+    /* ── Individual question cards ──────────────────────────── */
+    .question-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--radius);
+      padding: 1.2rem 1.4rem;
+      margin-bottom: 0.9rem;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: reveal 0.35s forwards;
+    }
+
+    .question-card:nth-child(2) { animation-delay: 0.08s; }
+    .question-card:nth-child(3) { animation-delay: 0.16s; }
+
+    @keyframes reveal {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .q-number {
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+
+    .q-text {
+      font-size: 0.9rem;
+      line-height: 1.65;
+      color: var(--text);
+      font-family: var(--mono);
+      font-weight: 300;
+    }
+
+    /* ── Divider ─────────────────────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2.5rem 0;
+    }
+
+    /* ── Footer ─────────────────────────────────────────────── */
+    footer {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      margin-top: 3rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <p class="label">// Interview Prep Tool</p>
+      <h1>Generate <em>thoughtful</em><br>interview questions</h1>
+      <p class="sub">
+        Enter any job title and receive three role-specific questions
+        crafted to surface real competency, experience, and fit.
+      </p>
+    </header>
+
+    <!-- Input form -->
+    <div class="form-row">
+      <input
+        id="job-title"
+        type="text"
+        placeholder="e.g. Customer Success Manager"
+        maxlength="120"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <button id="submit-btn" type="button">Generate →</button>
+    </div>
+
+    <!-- Status / error line -->
+    <p class="status" id="status-line" role="status" aria-live="polite"></p>
+
+    <!-- Loading indicator -->
+    <div class="loader" id="loader" aria-hidden="true">
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="dot"></span>
+      <span class="loader-text">Generating questions…</span>
+    </div>
+
+    <!-- Results -->
+    <section id="results" aria-live="polite">
+      <div class="results-header">
+        <span class="results-label">Questions for</span>
+        <span class="role-tag" id="role-display"></span>
+      </div>
+      <div id="cards-container"></div>
+    </section>
+
+    <hr class="divider" />
+    <footer>Powered by Gemini · No personal data is collected or transmitted.</footer>
+
+  </div>
+
+  <script>
+    
+    // ── DOM references ──────────────────────────────────────────
+    const input      = document.getElementById("job-title");
+    const btn        = document.getElementById("submit-btn");
+    const statusLine = document.getElementById("status-line");
+    const loader     = document.getElementById("loader");
+    const results    = document.getElementById("results");
+    const roleDisplay= document.getElementById("role-display");
+    const cardsWrap  = document.getElementById("cards-container");
+
+    // ── Helpers ─────────────────────────────────────────────────
+
+    /** Show or clear an error/info message below the input */
+    function setStatus(msg, isError = false) {
+      statusLine.textContent = msg;
+      statusLine.className   = "status" + (isError ? " error" : "");
+    }
+
+    /** Toggle the loading state of the UI */
+    function setLoading(loading) {
+      btn.disabled         = loading;
+      loader.className     = loading ? "loader visible" : "loader";
+      if (loading) results.className = "";   // hide stale results
+    }
+
+    /**
+     * Parse the numbered list returned by the model.
+     * Handles variations like "1.", "1)", or bare lines.
+     * Returns an array of up to 3 question strings.
+     */
+    function parseQuestions(raw) {
+      return raw
+        .split("\n")
+        .map(line => line.replace(/^\s*\d+[.)]\s*/, "").trim())
+        .filter(line => line.length > 10)   // drop empty / too-short lines
+        .slice(0, 3);
+    }
+
+    /** Render question cards into the results section */
+    function renderCards(questions, jobTitle) {
+      cardsWrap.innerHTML = "";
+
+      questions.forEach((q, i) => {
+        const card = document.createElement("div");
+        card.className = "question-card";
+
+        const num  = document.createElement("p");
+        num.className = "q-number";
+        num.textContent = `Question ${i + 1}`;
+
+        const text = document.createElement("p");
+        text.className = "q-text";
+        text.textContent = q;
+
+        card.appendChild(num);
+        card.appendChild(text);
+        cardsWrap.appendChild(card);
+      });
+
+      roleDisplay.textContent = jobTitle;
+      results.className = "visible";
+    }
+
+    // ── Main handler ────────────────────────────────────────────
+
+    async function fetchQuestions(jobTitle) {
+      const response = await fetch("/api/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobTitle }),
+      });
+
+      const data = await response.json(); // read the response body
+      
+      // Extract the first text block from the candidates array
+      // Safely navigate the nested response structure
+      const firstCandidate = data.candidates?.[0];
+      const firstPart = firstCandidate?.content?.parts?.[0];
+
+      if (!firstPart?.text) {
+        throw new Error("Unexpected response format from API.");
+      }
+
+      return firstPart.text.trim();
+      return text;
+    }
+
+    async function handleSubmit() {
+      const jobTitle = input.value.trim();
+
+      if (!jobTitle) {
+        setStatus("Please enter a job title.", true);
+        input.focus();
+        return;
+      }
+
+      setStatus("");
+      setLoading(true);
+
+      try {
+        const raw = await fetchQuestions(jobTitle);
+        const questions = parseQuestions(raw);
+
+        if (questions.length < 1) {
+          throw new Error("Could not parse questions from the API response.");
+        }
+
+        renderCards(questions, jobTitle);
+        setStatus("");
+      } catch (err) {
+        console.error("[InterviewGen] Error:", err);
+        setStatus("Something went wrong: " + err.message, true);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // ── Event listeners ─────────────────────────────────────────
+    btn.addEventListener("click", handleSubmit);
+
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") handleSubmit();
+    });
+  </script>
+</body>
+</html>
