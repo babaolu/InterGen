@@ -8,7 +8,7 @@ Built as part of a technical screen exercise. The goal was to keep the code simp
 
 ## Live Demo
 
-[View the live site →](https://your-site-name.netlify.app)
+[View the live site →](https://itunz.app)
 
 ---
 
